@@ -51,7 +51,7 @@ path = 'cabspottingdata'
 all_files = [file_name for file_name in listdir(path) if file_name.endswith('.txt')]
 print(f'All files are {len(all_files)}')
 
-PercFiles = 0.03
+PercFiles = 0.05
 random.Random(1923).shuffle(all_files)
 SelectedFiles = all_files[:int(PercFiles * len(all_files))]
 
@@ -105,6 +105,7 @@ def visualize_dbscan(db: DBSCAN, X: DataFrame):
     # Black removed and is used for noise instead.
     unique_labels = set(labels)
     colors = [plt.cm.Spectral(each) for each in np.linspace(0, 1, len(unique_labels))]
+    clustercoords = []
     for k, col in zip(unique_labels, colors):
         if k == -1:
             # Black used for noise.
@@ -115,20 +116,20 @@ def visualize_dbscan(db: DBSCAN, X: DataFrame):
 
         xy = X[class_member_mask & core_samples_mask].values
         plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=tuple(col), markeredgecolor='k', markersize=14)
-
+        clustercoords.append((xy[:, 0], xy[:, 1]))
         xy = X[class_member_mask & ~core_samples_mask].values
         plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=tuple(col), markeredgecolor='k', markersize=6)
 
 
     plt.title('Estimated number of clusters: %d' % n_clusters_)
-
-    
+    return clustercoords
+     
     
 sampled_data = Data[Data['Occupancy'] == 1][['Latitude', 'Longitude']]#.sample(frac=0.3, random_state=0)
 
 db = DBSCAN(eps=0.0005, min_samples=50)
 db.fit(sampled_data)
-visualize_dbscan(db=db, X=sampled_data)
+clustercoords0 = visualize_dbscan(db=db, X=sampled_data)
 #plt.show()
 plt.savefig('cluster_occ1.png')
 plt.close()
@@ -140,13 +141,83 @@ sampled_data = Data[Data['Occupancy'] == 0][['Latitude', 'Longitude']]#.sample(f
 
 db = DBSCAN(eps=0.0005, min_samples=50)
 db.fit(sampled_data)
-visualize_dbscan(db=db, X=sampled_data)
+clustercoords1 = visualize_dbscan(db=db, X=sampled_data)
 #plt.show()
 
 plt.savefig('cluster_occ0.png')
 plt.close()
 plt.cla()
 plt.clf()
+
+
+latccoords0 = [ cluster[0].mean() for cluster in clustercoords0]
+print(len(latccoords0))
+longccoords0 = [ cluster[1].mean() for cluster in clustercoords0]
+
+
+latccoords1 = [ cluster[0].mean() for cluster in clustercoords1]
+print(len(latccoords1))
+longccoords1 = [ cluster[1].mean() for cluster in clustercoords1]
+
+
+import folium
+folium.__version__
+#Creating a World Map
+world_map=folium.Map()
+
+#Geographical location is determined and positioned by latitude and longitude. This site is located in San Francisco, so San Francisco shall prevail.
+latitude=37.77
+longitude=-122.42
+#Display the location, zoom_start parameter for zoom-in small control, tiles for control style, OpenStreetMap,Stamen Terrain,Stamen Toner, etc.
+San_map=folium.Map(location=[latitude,longitude],zoom_start=12)
+San_map
+
+clusters0=folium.FeatureGroup() 
+
+#Place 211 events in the area array for display
+for lat,lng, in zip(latccoords0,longccoords0):
+   # print(lat, lng)
+    clusters0.add_child
+    (
+    folium.CircleMarker(
+      location  = [lat,lng],
+      radius=10,
+      color='green',
+        fill=True,
+        fill_color='green',
+        fill_opacity=0.5
+    )
+    ).add_to(San_map)
+ #Display the accident on the map
+#clusters0=plugins.MarkerCluster().add_to(San_map)  #Marking Cluster Objects for Data Events
+print(type(clusters0))
+San_map.add_child(clusters0)
+
+clusters1=folium.FeatureGroup() 
+#Place 211 events in the area array for display
+for lat,lng, in zip(latccoords1,longccoords1):
+   # print(lat, lng)
+    clusters1.add_child
+    (
+    folium.CircleMarker(
+      location  = [lat,lng],
+      radius=10,
+      color='red',
+        fill=True,
+        fill_color='red',
+        fill_opacity=0.5
+    )
+    ).add_to(San_map)
+ #Display the accident on the map
+#clusters0=plugins.MarkerCluster().add_to(San_map)  #Marking Cluster Objects for Data Events
+print(type(clusters1))
+San_map.add_child(clusters1)
+
+
+San_map.add_child(folium.LayerControl())
+
+San_map.save("Map1.html")
+
 
 
 MilesCovered=pd.DataFrame()
