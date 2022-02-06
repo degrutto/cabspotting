@@ -265,6 +265,10 @@ print(dist.size, dist.mean())
 dist = dist[np.where(dist<3)]
 print(dist.size, dist.mean())
 
+
+dist = dist[np.where(dist<0.5)]
+print(dist.size, dist.mean())
+
 plt.hist(dist, bins=100)
 plt.title("distance[mile] of pred next onboarding to actual onboarding")
 plt.xlabel("distance[mile]")
